@@ -106,6 +106,7 @@ def parse_status(homework):
     raise exceptions.ParseStatusException(message)
 
 
+# flake8: noqa: C901
 def main():
     """Основная логика работы бота."""
     if not check_tokens():
