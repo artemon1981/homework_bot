@@ -31,7 +31,17 @@ HOMEWORK_VERDICTS = {
 
 def check_tokens():
     """Проверяет доступность переменных окружения."""
-    return all([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID])
+    tokens = {
+        'PRACTICUM_TOKEN': PRACTICUM_TOKEN,
+        'TELEGRAM_TOKEN': TELEGRAM_TOKEN,
+        'TELEGRAM_CHAT_ID': TELEGRAM_CHAT_ID}
+    token_missing = True
+    for name, token in tokens.items():
+        if not token:
+            logging.critical(f'Отсутствуют обязательные '
+                             f'переменные окружения: {name}')
+            token_missing = False
+    return token_missing
 
 
 def send_message(bot, message):
@@ -76,7 +86,7 @@ def check_response(response):
         logging.error(message)
         raise exceptions.CheckResponseException(message)
     homeworks_list = response['homeworks']
-    if not isinstance(response.get('homeworks'), list):
+    if not isinstance(homeworks_list, list):
         message = ('В ответе домашки приходят не в виде списка. '
                    f'Получен: {type(homeworks_list)}')
         logging.error(message)
@@ -106,18 +116,9 @@ def parse_status(homework):
     raise exceptions.ParseStatusException(message)
 
 
-# flake8: noqa: C901
 def main():
     """Основная логика работы бота."""
     if not check_tokens():
-        tokens = {
-            'PRACTICUM_TOKEN': PRACTICUM_TOKEN,
-            'TELEGRAM_TOKEN': TELEGRAM_TOKEN,
-            'TELEGRAM_CHAT_ID': TELEGRAM_CHAT_ID}
-        for name, token in tokens.items():
-            if not token:
-                logging.critical(f'Отсутствуют обязательные '
-                                 f'переменные окружения: {name}')
         raise SystemExit('Не хватает обязательных переменных окружения')
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time()) - TIME_TO_REWIEW
@@ -129,14 +130,13 @@ def main():
             homeworks = check_response(response)
             if not homeworks:
                 logging.info('Статус не обновлен')
-            else:
-                for homework in homeworks:
-                    homework_status = parse_status(homework)
-                    if current_status == homework_status:
-                        logging.info(homework_status)
-                    else:
-                        current_status = homework_status
-                        send_message(bot, homework_status)
+            for homework in homeworks:
+                homework_status = parse_status(homework)
+                if current_status == homework_status:
+                    logging.info(homework_status)
+                else:
+                    current_status = homework_status
+                    send_message(bot, homework_status)
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             logging.error(message)
